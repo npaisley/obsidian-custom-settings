@@ -1,8 +1,373 @@
-/*
+.ocs-settings-tab {
+    .setting-item-heading {
+        border-top: 1px solid var(--background-modifier-border);
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+        .setting-item-name {
+            font-size: var(--font-ui-medium);
+            /* text-decoration: underline; */
+        }
+    }
 
-If your plugin does not need CSS, delete this file.
+    /* Date format preview styling */
+	.date-format-preview {
+		color: var(--text-accent);
+		font-weight: 500;
+	}
+	/* Setting section component styles */
+	.setting-section-children {
+		display: none;
+		margin-left: 0.5rem;
+		margin-bottom: 0.75em;
+		border-left: 1px solid var(--background-modifier-border);
+		padding-left: 1rem;
+	}
 
-*/
+    .setting-item-heading .setting-item-control button.setting-section-toggle {
+		background-color: transparent;
+		box-shadow: none;
+		border-radius: 50%;
+		padding: 4px;
+		transition: all 0.2s ease;
+		position: relative;
+
+		&::before {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background-color: var(--interactive-accent);
+			border-radius: 50%;
+			opacity: 0;
+			transform: scale(0.8);
+			transition: all 0.2s ease;
+		}
+
+		&:hover {
+			&::before {
+				opacity: 0.1;
+				transform: scale(1);
+			}
+
+			/* svg {
+				color: var(--interactive-accent);
+				filter: none;
+			} */
+		}
+
+		svg {
+			position: relative;
+			z-index: 1;
+			transition: all 0.2s ease;
+		}
+	}
+
+	/* ListSetting Component Styles */
+	.list-setting-pills {
+		margin-top: 8px;
+		margin-left: 0px;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		padding-left: var(--size-4-6);
+	}
+
+	.list-setting-empty {
+		color: var(--text-muted);
+		font-style: italic;
+		font-size: 0.9em;
+	}
+
+	.list-setting-pill {
+		display: inline-flex;
+		align-items: center;
+		border: 1px solid var(--background-modifier-border);
+		background-color: var(--background-modifier-border);
+		border-radius: 12px;
+		padding: 4px 8px;
+		font-size: 0.85em;
+		gap: 6px;
+		max-width: 200px;
+		transition: all 0.1s ease;
+
+		.list-setting-pill-text {
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			flex: 1;
+		}
+
+		&.is-default {
+			.list-setting-pill-text {
+				font-weight: 500;
+				color: var(--text-accent);
+			}
+		}
+
+		.list-setting-pill-default {
+			font-size: 0.7em;
+			font-weight: bold;
+			color: var(--text-accent);
+			padding: 1px 4px;
+			border-radius: 6px;
+			border: 1px solid var(--text-accent);
+			flex-shrink: 0;
+		}
+	}
+
+	.list-setting-pill:hover {
+		background-color: var(--background-modifier-hover);
+		border-color: var(--background-modifier-hover);
+	}
+
+	.list-setting-pill-promote {
+		font-weight: bold;
+		font-size: 0.9em;
+		line-height: 1;
+		user-select: none;
+		padding: 2px 4px;
+		border-radius: 4px;
+		flex-shrink: 0;
+		cursor: pointer;
+		color: var(--text-muted);
+		border: 1px solid transparent;
+		transition: all 0.1s ease;
+	}
+
+	.list-setting-pill-promote:hover {
+		color: var(--text-accent);
+		background-color: var(--background-modifier-accent-hover);
+		border: 1px solid var(--text-accent);
+
+        svg {
+			transform: translateY(-1px);
+		}
+	}
+
+	.list-setting-pill-remove {
+		font-weight: bold;
+		font-size: 1.1em;
+		line-height: 1;
+		user-select: none;
+		padding: 2px;
+		border-radius: 50%;
+		flex-shrink: 0;
+		cursor: pointer;
+		color: var(--text-muted);
+		opacity: 1;
+		transition: color 0.1s ease;
+	}
+
+	.list-setting-pill-remove:hover {
+		color: var(--text-normal);
+	}
+
+	.list-setting-pill-remove.is-disabled {
+		cursor: not-allowed;
+		color: var(--text-faint);
+		opacity: 0.5;
+	}
+
+	/* Callout Preview Styles*/
+	.callout-preview-section {
+		margin: 1rem 0;
+		padding: 1rem;
+		background: var(--background-secondary);
+		border-radius: 8px;
+		border: 1px solid var(--background-modifier-border);
+
+		h4 {
+			margin: 0 0 0.5rem 0;
+			color: var(--text-normal);
+			font-size: 0.9rem;
+			font-weight: 600;
+		}
+	}
+
+	.callout-preview-container {
+		background: var(--background-primary);
+		padding: 1rem;
+		border-radius: 6px;
+		border: 1px solid var(--background-modifier-border-hover);
+	}
+
+	.settings-section-spacer {
+		height: 1.5rem;
+	}
+}
+
+/* Reset Confirmation Modal Styles */
+.ocs-settings-reset-modal {
+	.reset-warning-container {
+		background: var(--background-secondary);
+		border: 1px solid var(--background-modifier-border);
+		border-left: 4px solid var(--text-error);
+		padding: 1rem;
+		border-radius: 4px;
+		margin-bottom: 1rem;
+
+		p {
+			margin: 0 0 0.5rem 0;
+			line-height: 1.4;
+		}
+
+		ul {
+			margin: 0.5rem 0;
+			padding-left: 1.5rem;
+		}
+
+		li {
+			margin-bottom: 0.25rem;
+		}
+	}
+
+	.modal-button-container {
+		display: flex;
+		justify-content: flex-end;
+		gap: 0.5rem;
+		margin-top: 1.5rem;
+
+		button {
+			padding: 0.5rem 1rem;
+			border-radius: 4px;
+			border: 1px solid var(--interactive-normal);
+			background: var(--interactive-normal);
+			color: var(--text-normal);
+			cursor: pointer;
+			font-size: 14px;
+
+			&:hover {
+				background: var(--interactive-hover);
+			}
+
+			&.mod-cta {
+				background: var(--interactive-accent);
+				border-color: var(--interactive-accent);
+				color: var(--text-on-accent);
+			}
+
+			&.mod-warning {
+				background: var(--text-error);
+				border-color: var(--text-error);
+				color: white;
+
+				&:hover {
+					background: var(--text-error);
+					opacity: 0.8;
+				}
+			}
+		}
+	}
+
+	/* Modal title styling for reset confirmation */
+	h2 {
+		color: var(--text-error);
+		margin-bottom: 1rem;
+	}
+}
+
+.ocs-icon-picker-container {
+	.icon-search-container {
+		margin-bottom: 1rem;
+
+		input {
+			width: 100%;
+			padding: 0.5rem;
+			border: 1px solid var(--background-modifier-border);
+			border-radius: 4px;
+			background: var(--background-primary);
+			color: var(--text-normal);
+			font-size: 14px;
+		}
+	}
+
+	.current-icon-section {
+		margin-bottom: 1rem;
+		padding-bottom: 1rem;
+		border-bottom: 1px solid var(--background-modifier-border);
+	}
+
+	.current-icon-display {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem;
+	}
+
+	.current-icon-item {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.5rem;
+		background: var(--background-secondary);
+		border-radius: 4px;
+	}
+
+	.current-icon-name {
+		font-weight: 500;
+		font-size: 0.9rem;
+	}
+
+	.icon-grid-container {
+		max-height: 400px;
+		overflow-y: auto;
+		border: 1px solid var(--background-modifier-border);
+		border-radius: 4px;
+		padding: 0.5rem;
+	}
+
+	.icon-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+		gap: 0.5rem;
+	}
+
+	.icon-item {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 0.75rem 0.5rem;
+		border: 1px solid var(--background-modifier-border);
+		border-radius: 4px;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		background: var(--background-primary);
+		min-height: 70px;
+		justify-content: center;
+
+		&:hover {
+			background: var(--background-modifier-hover);
+			border-color: var(--interactive-accent);
+			transform: translateY(-1px);
+		}
+
+		&.selected {
+			background: var(--interactive-accent);
+			color: var(--text-on-accent);
+			border-color: var(--interactive-accent);
+		}
+	}
+
+	.icon-preview {
+		margin-bottom: 0.25rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+
+		svg {
+			width: 20px;
+			height: 20px;
+		}
+	}
+
+	.icon-name {
+		font-size: 0.7rem;
+		text-align: center;
+		word-break: break-word;
+		line-height: 1.2;
+		max-width: 100%;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+}

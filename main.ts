@@ -3,8 +3,12 @@ import {
 	App,
 	ButtonComponent,
 	DropdownComponent,
+	Events,
 	getIcon,
 	getIconIds,
+	MarkdownRenderChild,
+	MarkdownRenderer,
+	Menu,
 	Modal,
 	Notice,
 	Plugin,
@@ -16,6 +20,7 @@ import {
 // Define an interface for your API
 interface SettingsAPI {
 	readonly settings: OcsSettings;
+	settingsEmitter: SettingsEventEmitter;
 }
 
 // Add the API to the global window object
@@ -25,16 +30,30 @@ declare global {
 	}
 }
 
+// Create a custom event emitter for settings changes
+export class SettingsEventEmitter extends Events {
+	constructor() {
+		super();
+	}
+}
+
 export default class CustomSettingsPlugin extends Plugin {
 	settings: OcsSettings;
 	api: SettingsAPI;
 
+	settingsEmitter = new SettingsEventEmitter();
+
 	async onload() {
 		await this.loadSettings();
+
+		this.addRibbonIcon("triangle", "Project Delta", (evt: MouseEvent) =>
+			this.showRibbonMenu(evt)
+		);
 
 		// Initialize the API
 		this.api = {
 			settings: this.settings,
+			settingsEmitter: this.settingsEmitter,
 		};
 
 		// Register the API globally
@@ -54,18 +73,86 @@ export default class CustomSettingsPlugin extends Plugin {
 			DEFAULT_SETTINGS,
 			await this.loadData()
 		);
+		await this.emitSettingsChanges();
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+		this.emitSettingsChanges();
+	}
+
+	async emitSettingsChanges() {
+		this.settingsEmitter.trigger("ocs-settings-changed", this.settings);
 	}
 
 	async onunload() {
-		// this.settings = DEFAULT_SETTINGS;
 		window.ocs = undefined;
 		console.log(
 			`${this.manifest.name} version ${this.manifest.version} unloaded`
 		);
+	}
+
+	showRibbonMenu(evt: MouseEvent) {
+		const menu = new Menu();
+
+		// Add menu items
+		menu.addItem((item) =>
+			item.setTitle("Project Delta Help").setIsLabel(true)
+		);
+		menu.addSeparator();
+		menu.addItem((item) =>
+			item
+				.setTitle("Project Delta Set-Up")
+				.setIcon("play")
+				.onClick(() => {
+					new ReferenceInformationModal(
+						this.app,
+						this,
+						ReferenceContent.SETUP
+					).open();
+				})
+		);
+
+		menu.addItem((item) =>
+			item
+				.setTitle("Markdown Guide")
+				.setIcon("type")
+				.onClick(() => {
+					new ReferenceInformationModal(
+						this.app,
+						this,
+						ReferenceContent.MARKDOWN
+					).open();
+				})
+		);
+		menu.addItem((item) =>
+			item
+				.setTitle("Callout Types")
+				.setIcon("rectangle-horizontal")
+				.onClick(() => {
+					new ReferenceInformationModal(
+						this.app,
+						this,
+						ReferenceContent.CALLOUT_TYPES
+					).open();
+				})
+		);
+		menu.addItem((item) =>
+			item
+				.setTitle("Callout Metadata Guide")
+				.setIcon("rectangle-ellipsis")
+				.onClick(() => {
+					new ReferenceInformationModal(
+						this.app,
+						this,
+						ReferenceContent.CALLOUT_METADATA
+					).open();
+				})
+		);
+
+		menu.addSeparator();
+
+		menu.showAtMouseEvent(evt);
 	}
 }
 
@@ -220,7 +307,7 @@ const DEFAULT_SETTINGS: OcsSettings = {
 	//in note summary views
 	inNoteSummaryFold: "+",
 	inNoteRolesCalloutType: "column-layout",
-	inNoteRolesCalloutMetadata: "full-height clamp-responsive-m grow", //TODO add setting ui
+	inNoteRolesCalloutMetadata: "full-height clamp-responsive-s center-spaced",
 	inNoteYearlyGoalsCalloutFold: "",
 	responsibleRoleCalloutType: "user",
 	responsibleRoleCalloutMetadata: "light-blue",
@@ -236,7 +323,7 @@ const DEFAULT_SETTINGS: OcsSettings = {
 	yearlyGoalsSummaryDashboardCalloutType: "column-layout",
 	yearlyGoalsSummaryDashboardCalloutMetadata: "clamp-m",
 };
-//TODO continue adding settings
+
 class SettingsPluginTab extends PluginSettingTab {
 	plugin: CustomSettingsPlugin;
 
@@ -346,6 +433,55 @@ class SettingsPluginTab extends PluginSettingTab {
 		);
 		new Setting(containerEl).setName(settingTitle).setDesc(settingDesc);
 		new Setting(containerEl)
+			.setClass("reference-buttons-container")
+			.setName("Reference")
+			.setHeading()
+			.addButton((Button) =>
+				Button.setButtonText("Project Delta Set-Up")
+					.setCta()
+					.onClick(() => {
+						new ReferenceInformationModal(
+							this.app,
+							this.plugin,
+							ReferenceContent.SETUP
+						).open();
+					})
+			)
+			.addButton((Button) =>
+				Button.setButtonText("Markdown Reference")
+					.setCta()
+					.onClick(() => {
+						new ReferenceInformationModal(
+							this.app,
+							this.plugin,
+							ReferenceContent.MARKDOWN
+						).open();
+					})
+			)
+			.addButton((Button) =>
+				Button.setButtonText("Callout Types")
+					.setCta()
+					.onClick(() => {
+						new ReferenceInformationModal(
+							this.app,
+							this.plugin,
+							ReferenceContent.CALLOUT_TYPES
+						).open();
+					})
+			)
+			.addButton((button) =>
+				button
+					.setButtonText("Callout Metadata")
+					.setCta()
+					.onClick(() => {
+						new ReferenceInformationModal(
+							this.app,
+							this.plugin,
+							ReferenceContent.CALLOUT_METADATA
+						).open();
+					})
+			);
+		new Setting(containerEl)
 			.setName("General Settings")
 			.setHeading()
 			.setDesc(" "); //Makes spacing a bit bigger
@@ -436,7 +572,7 @@ class SettingsPluginTab extends PluginSettingTab {
 					'Options that will be used to indicate that a project or task is "In Progress". At least one option is required.',
 					inProgressStringDesc.createEl("br"),
 					inProgressStringDesc.createEl("b", {
-						text: "Note! The first option will be used by default. The other options are available for compatibility reasons only.",
+						text: "Note! The first option will be used by default. The other options are available for compatibility reasons only (aka. when you change terms old notes will still work).",
 					})
 				);
 				new ListSetting(
@@ -763,6 +899,19 @@ class SettingsPluginTab extends PluginSettingTab {
 								await this.plugin.saveSettings();
 							})
 					);
+				new CalloutMetadataSetting(
+					containerEl,
+					`Summary Callout Role Parent Metadata`,
+					"Select metadata options to apply additional styling or configuration to the role section (responsible, accountable, and contributing) (ex. item widths, consistent heights, etc.)",
+					this.plugin.settings.inNoteRolesCalloutMetadata as string,
+					async (items) => {
+						(this.plugin.settings
+							.inNoteRolesCalloutMetadata as string) =
+							items.join(" ");
+						await this.plugin.saveSettings();
+					},
+					() => this.plugin.settings.inNoteRolesCalloutType as string // Get current callout type
+				);
 				new SettingSection(containerEl)
 					.setName("Responsible Role Callout Styles")
 					.setDesc("Style settings for responsible role callouts")
@@ -870,10 +1019,10 @@ class SettingsPluginTab extends PluginSettingTab {
 					);
 			});
 		new SettingSection(containerEl)
-		.setName("Projects And Tasks Dashboard Styling")
-		.setDesc("styling for the projects and tasks dashboard")
-		.addChildren((containerEl) => {
-			new CalloutMetadataSetting(
+			.setName("Projects And Tasks Dashboard Styling")
+			.setDesc("styling for the projects and tasks dashboard")
+			.addChildren((containerEl) => {
+				new CalloutMetadataSetting(
 					containerEl,
 					`Projects And Tasks Dashboard Metadata Options`,
 					"Select metadata options to apply additional styling or configuration to the projects and tasks dashboard (ex. item widths, consistent heights, etc.)",
@@ -889,7 +1038,7 @@ class SettingsPluginTab extends PluginSettingTab {
 						this.plugin.settings
 							.activeProjectsDashBoardParentCalloutType as string // Get current callout type
 				);
-		})
+			});
 		new SettingSection(containerEl)
 			.setName("Yearly Goals dashboard Styling")
 			.setDesc("Styling for the yearly goals summary dashboard")
@@ -2344,5 +2493,77 @@ export class CalloutMetadataSetting {
 
 	public enable(): void {
 		this.dropdownComponent.setDisabled(false);
+	}
+}
+
+enum ReferenceContent {
+	SETUP,
+	MARKDOWN,
+	CALLOUT_METADATA,
+	CALLOUT_TYPES,
+}
+
+import markdownReference from "./assets/markdown_reference.md";
+import projectDeltaSetupReference from "./assets/project_delta_setup.md";
+import calloutTypesReference from "./assets/callout_types.md";
+import calloutMetadataReference from "./assets/callout_metadata.md";
+
+class ReferenceInformationModal extends Modal {
+	plugin: CustomSettingsPlugin;
+	contentType: ReferenceContent;
+
+	constructor(
+		app: App,
+		plugin: CustomSettingsPlugin,
+		contentType: ReferenceContent
+	) {
+		super(app);
+		this.plugin = plugin;
+		this.contentType = contentType;
+	}
+
+	private getContent(contentType: ReferenceContent): string {
+		const setUpContent = projectDeltaSetupReference;
+		const markdownGuideContent = markdownReference;
+		const calloutTypeContent = calloutTypesReference;
+		const calloutMetadataContent = calloutMetadataReference;
+
+		switch (contentType) {
+			case ReferenceContent.SETUP:
+				return setUpContent;
+			case ReferenceContent.MARKDOWN:
+				return markdownGuideContent;
+			case ReferenceContent.CALLOUT_TYPES:
+				return calloutTypeContent;
+			case ReferenceContent.CALLOUT_METADATA:
+				return calloutMetadataContent;
+			default:
+				return "";
+		}
+	}
+
+	async onOpen() {
+		const { contentEl } = this;
+
+		const container = contentEl.createDiv();
+
+		// Create a MarkdownRenderChild for lifecycle management
+		const renderChild = new MarkdownRenderChild(container);
+
+		const content = this.getContent(this.contentType);
+
+		// Use the new render method with app parameter
+		await MarkdownRenderer.render(
+			this.app, // app parameter
+			content, // markdown content
+			container, // target element
+			"", // sourcePath
+			renderChild // component for lifecycle management
+		);
+	}
+
+	onClose() {
+		const { contentEl } = this;
+		contentEl.empty();
 	}
 }

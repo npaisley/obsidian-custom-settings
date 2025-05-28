@@ -1,9 +1,9 @@
 {
 	"id": "obsidian-custom-settings",
-	"name": "Obsidian Custom Settings",
+	"name": "Project Delta",
 	"version": "0.1.0",
 	"minAppVersion": "0.15.0",
-	"description": "Enables the creation of custom settings that can be used by any other plugin (ex. dataview, datacore)",
+	"description": "Settings for Project Delta",
 	"author": "Nathan Paisley",
 	"authorUrl": "https://github.com/npaisley/",
 	"fundingUrl": "",

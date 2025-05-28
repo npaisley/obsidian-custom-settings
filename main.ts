@@ -2,6 +2,7 @@
 import {
 	App,
 	ButtonComponent,
+	DropdownComponent,
 	getIcon,
 	getIconIds,
 	Modal,
@@ -60,6 +61,7 @@ export default class CustomSettingsPlugin extends Plugin {
 	}
 
 	async onunload() {
+		// this.settings = DEFAULT_SETTINGS;
 		window.ocs = undefined;
 		console.log(
 			`${this.manifest.name} version ${this.manifest.version} unloaded`
@@ -75,6 +77,7 @@ interface OcsSettings {
 	//Active projects and tasks dashboard
 	activeProjectsDashBoardParentCalloutType: string;
 	activeProjectsDashBoardParentCalloutMetadata: string;
+	activeProjectsDashBoardParentCalloutFold: string;
 	//general
 	mainUser: string;
 	showDates: boolean;
@@ -146,6 +149,8 @@ interface OcsSettings {
 	// yearly goals dashboard
 	yearlyGoalsSummaryDashboardCalloutFold: string;
 	yearlyGoalsSummaryDashboardShowCompleted: boolean;
+	yearlyGoalsSummaryDashboardCalloutType: string;
+	yearlyGoalsSummaryDashboardCalloutMetadata: string;
 }
 
 const DEFAULT_SETTINGS: OcsSettings = {
@@ -155,8 +160,8 @@ const DEFAULT_SETTINGS: OcsSettings = {
 	defaultMetadata: "",
 	//Active projects and tasks dashboard
 	activeProjectsDashBoardParentCalloutType: "column-layout",
-	activeProjectsDashBoardParentCalloutMetadata:
-		"base-300 no-grow full-height",
+	activeProjectsDashBoardParentCalloutMetadata: "clamp-m grow full-height",
+	activeProjectsDashBoardParentCalloutFold: "",
 	//general
 	mainUser: "",
 	showDates: false,
@@ -215,7 +220,7 @@ const DEFAULT_SETTINGS: OcsSettings = {
 	//in note summary views
 	inNoteSummaryFold: "+",
 	inNoteRolesCalloutType: "column-layout",
-	inNoteRolesCalloutMetadata: "full-height",
+	inNoteRolesCalloutMetadata: "full-height clamp-responsive-m grow", //TODO add setting ui
 	inNoteYearlyGoalsCalloutFold: "",
 	responsibleRoleCalloutType: "user",
 	responsibleRoleCalloutMetadata: "light-blue",
@@ -228,6 +233,8 @@ const DEFAULT_SETTINGS: OcsSettings = {
 	//yearly goals dashboard
 	yearlyGoalsSummaryDashboardCalloutFold: "",
 	yearlyGoalsSummaryDashboardShowCompleted: true,
+	yearlyGoalsSummaryDashboardCalloutType: "column-layout",
+	yearlyGoalsSummaryDashboardCalloutMetadata: "clamp-m",
 };
 //TODO continue adding settings
 class SettingsPluginTab extends PluginSettingTab {
@@ -863,9 +870,46 @@ class SettingsPluginTab extends PluginSettingTab {
 					);
 			});
 		new SettingSection(containerEl)
+		.setName("Projects And Tasks Dashboard Styling")
+		.setDesc("styling for the projects and tasks dashboard")
+		.addChildren((containerEl) => {
+			new CalloutMetadataSetting(
+					containerEl,
+					`Projects And Tasks Dashboard Metadata Options`,
+					"Select metadata options to apply additional styling or configuration to the projects and tasks dashboard (ex. item widths, consistent heights, etc.)",
+					this.plugin.settings
+						.activeProjectsDashBoardParentCalloutMetadata as string,
+					async (items) => {
+						(this.plugin.settings
+							.activeProjectsDashBoardParentCalloutMetadata as string) =
+							items.join(" ");
+						await this.plugin.saveSettings();
+					},
+					() =>
+						this.plugin.settings
+							.activeProjectsDashBoardParentCalloutType as string // Get current callout type
+				);
+		})
+		new SettingSection(containerEl)
 			.setName("Yearly Goals dashboard Styling")
 			.setDesc("Styling for the yearly goals summary dashboard")
 			.addChildren((containerEl) => {
+				new CalloutMetadataSetting(
+					containerEl,
+					`Yearly Goals Dashboard Metadata Options`,
+					"Select metadata options to apply additional styling or configuration to the yearly goals dashboard (ex. item widths, consistent heights, etc.)",
+					this.plugin.settings
+						.yearlyGoalsSummaryDashboardCalloutMetadata as string,
+					async (items) => {
+						(this.plugin.settings
+							.yearlyGoalsSummaryDashboardCalloutMetadata as string) =
+							items.join(" ");
+						await this.plugin.saveSettings();
+					},
+					() =>
+						this.plugin.settings
+							.yearlyGoalsSummaryDashboardCalloutType as string // Get current callout type
+				);
 				new Setting(containerEl)
 					.setName("Yearly Goal Callout Fold")
 					.setDesc(
@@ -911,7 +955,7 @@ class SettingsPluginTab extends PluginSettingTab {
 			.addButton((button) => {
 				button
 					.setIcon("lucide-refresh-cw")
-					.setWarning() // Makes the button red/warning colored
+					.setWarning() // Makes the button red/warning coloured
 					.onClick(() => {
 						new ResetConfirmationModal(this.app, async () => {
 							// Reset the settings
@@ -1127,24 +1171,19 @@ class SettingsPluginTab extends PluginSettingTab {
 
 		// Metadata setting
 		if (enableMetadata) {
-			new Setting(containerEl)
-				.setName(`${sectionTitleShort} Callout Metadata`)
-				.setDesc(
-					"Use to apply additional styling or configuration to the callout (ex. link-matches-callout). Each metadata option must be separated by a space"
-				)
-				.addText((text) =>
-					text
-						.setPlaceholder("light-blue link-matches-callout, ...")
-						.setValue(
-							this.plugin.settings[metadataSetting] as string
-						)
-						.onChange(async (value) => {
-							(this.plugin.settings[metadataSetting] as string) =
-								value.trim();
-							await this.plugin.saveSettings();
-							updatePreview();
-						})
-				);
+			new CalloutMetadataSetting(
+				containerEl,
+				`${sectionTitleShort} Callout Metadata`,
+				"Select metadata options to apply additional styling or configuration to the callout",
+				this.plugin.settings[metadataSetting] as string,
+				async (items) => {
+					(this.plugin.settings[metadataSetting] as string) =
+						items.join(" ");
+					await this.plugin.saveSettings();
+					updatePreview();
+				},
+				() => this.plugin.settings[typeSetting] as string // Get current callout type
+			);
 		}
 
 		// Fold setting
@@ -1349,7 +1388,6 @@ class SettingSection {
 
 		// Create children container (initially hidden)
 		this.childrenEl = containerEl.createDiv("setting-section-children");
-		// this.childrenEl.style.display = "none";
 
 		// Add the toggle button with chevron
 		this.setting.addButton((button) => {
@@ -1734,5 +1772,577 @@ class ResetConfirmationModal extends Modal {
 	onClose() {
 		const { contentEl } = this;
 		contentEl.empty();
+	}
+}
+
+export class CalloutMetadataSetting {
+	private containerEl: HTMLElement;
+	private setting: Setting;
+	private items: string[] = [];
+	private dropdownComponent: DropdownComponent;
+	private pillsContainer: HTMLElement;
+	private onChange: (items: string[]) => void;
+	private getCalloutType: () => string;
+
+	// Metadata categories and their values
+	private static readonly METADATA_CATEGORIES = {
+		colorOverrides: [
+			"light-gray",
+			"medium-gray",
+			"dark-gray",
+			"yellow",
+			"grapefruit",
+			"burnt-orange",
+			"orange",
+			"red",
+			"dusty-rose",
+			"light-green",
+			"medium-green",
+			"dark-green",
+			"forest-green",
+			"light-blue",
+			"medium-blue",
+			"dark-blue",
+			"purple",
+			"violet",
+			"gold",
+			"cyan",
+			"inherit-parent-callout-colour",
+		],
+		colorModifiers: ["transparent", "intense"],
+		borderStyling: [
+			"bw1-L",
+			"bw1-R",
+			"bw1-T",
+			"bw1-B",
+			"bw1-A",
+			"bw2-L",
+			"bw2-R",
+			"bw2-T",
+			"bw2-B",
+			"bw2-A",
+			"bw3-L",
+			"bw3-R",
+			"bw3-T",
+			"bw3-B",
+			"bw3-A",
+			"bw4-L",
+			"bw4-R",
+			"bw4-T",
+			"bw4-B",
+			"bw4-A",
+		],
+		titleOptions: ["no-icon", "hide-title-bar", "no-title"],
+		contentStyle: ["link-matches-callout"],
+		// Column layout sizing options (mutually exclusive groups)
+		baseSizing: [
+			"base-xs",
+			"base-s",
+			"base-m",
+			"base-l",
+			"base-xl",
+			"base-auto",
+		],
+		clampSizing: ["clamp-xs", "clamp-s", "clamp-m", "clamp-l", "clamp-xl"],
+		clampResponsiveSizing: [
+			"clamp-responsive-xs",
+			"clamp-responsive-s",
+			"clamp-responsive-m",
+			"clamp-responsive-l",
+			"clamp-responsive-xl",
+		],
+		// Flex behavior options (can be combined)
+		flexBehavior: ["grow", "shrink", "flexible"],
+		// Layout modes
+		layoutModes: ["no-wrap", "full-height"],
+		// Alignment options (mutually exclusive)
+		alignment: ["left-align", "center", "right-align", "center-spaced"],
+	};
+
+	constructor(
+		containerEl: HTMLElement,
+		name: string,
+		description: string | DocumentFragment,
+		initialValue = "",
+		onChange: (items: string[]) => void,
+		getCalloutType: () => string
+	) {
+		this.containerEl = containerEl;
+		this.items = this.parseMetadataString(initialValue);
+		this.onChange = onChange;
+		this.getCalloutType = getCalloutType;
+
+		this.createSetting(name, description);
+		this.createPillsContainer();
+		this.renderPills();
+	}
+
+	// Parse metadata string into array of items
+	private parseMetadataString(metadataString: string): string[] {
+		return metadataString
+			.split(" ")
+			.map((item) => item.trim())
+			.filter((item) => item.length > 0);
+	}
+
+	// Create the main setting UI with dropdown
+	private createSetting(
+		name: string,
+		description: string | DocumentFragment
+	): void {
+		this.setting = new Setting(this.containerEl)
+			.setName(name)
+			.setDesc(description)
+			.addDropdown((dropdown) => {
+				this.dropdownComponent = dropdown;
+				this.updateDropdownOptions();
+				dropdown.setValue("");
+
+				dropdown.onChange((value) => {
+					if (value && this.isOptionAvailable(value)) {
+						this.addItem(value);
+					}
+				});
+
+				return dropdown;
+			});
+	}
+
+	// Create container for pills display
+	private createPillsContainer(): void {
+		this.pillsContainer = this.containerEl.createDiv("list-setting-pills");
+	}
+
+	// Update dropdown options based on current state
+	private updateDropdownOptions(): void {
+		if (!this.dropdownComponent) return;
+
+		this.dropdownComponent.selectEl.empty();
+
+		// Add default empty option
+		const defaultOption =
+			this.dropdownComponent.selectEl.createEl("option");
+		defaultOption.value = "";
+		defaultOption.textContent = "Select metadata...";
+
+		const availableOptions = this.getAvailableOptions();
+
+		// Group options by category
+		const categories = {
+			"Colour Overrides":
+				CalloutMetadataSetting.METADATA_CATEGORIES.colorOverrides,
+			"Colour Modifiers":
+				CalloutMetadataSetting.METADATA_CATEGORIES.colorModifiers,
+			"Border Styling":
+				CalloutMetadataSetting.METADATA_CATEGORIES.borderStyling,
+			"Title Options":
+				CalloutMetadataSetting.METADATA_CATEGORIES.titleOptions,
+			"Content Style":
+				CalloutMetadataSetting.METADATA_CATEGORIES.contentStyle,
+			"Static Sizing":
+				CalloutMetadataSetting.METADATA_CATEGORIES.baseSizing,
+			"Clamp Sizing":
+				CalloutMetadataSetting.METADATA_CATEGORIES.clampSizing,
+			"Responsive Sizing":
+				CalloutMetadataSetting.METADATA_CATEGORIES
+					.clampResponsiveSizing,
+			"Flex Behavior":
+				CalloutMetadataSetting.METADATA_CATEGORIES.flexBehavior,
+			"Layout Modes":
+				CalloutMetadataSetting.METADATA_CATEGORIES.layoutModes,
+			Alignment: CalloutMetadataSetting.METADATA_CATEGORIES.alignment,
+		};
+
+		Object.entries(categories).forEach(
+			([categoryName, categoryOptions]) => {
+				const availableInCategory = categoryOptions.filter((option) =>
+					availableOptions.includes(option)
+				);
+
+				if (availableInCategory.length > 0) {
+					const optgroup =
+						this.dropdownComponent.selectEl.createEl("optgroup");
+					optgroup.label = categoryName;
+
+					availableInCategory.forEach((option) => {
+						const optionEl = optgroup.createEl("option");
+						optionEl.value = option;
+						optionEl.textContent = option;
+					});
+				}
+			}
+		);
+	}
+
+	// Get all available options (not already selected and compatible)
+	private getAvailableOptions(): string[] {
+		const allOptions = Object.values(
+			CalloutMetadataSetting.METADATA_CATEGORIES
+		).flat();
+		return allOptions.filter((option) => this.isOptionAvailable(option));
+	}
+
+	// Check if an option is available for selection
+	private isOptionAvailable(option: string): boolean {
+		if (this.items.includes(option)) {
+			return false;
+		}
+
+		const currentCalloutType = this.getCalloutType();
+
+		// Check if callout type is column-layout for sizing/layout options
+		const isColumnLayoutRequired = this.isColumnLayoutOption(option);
+		if (isColumnLayoutRequired && currentCalloutType !== "column-layout") {
+			return false;
+		}
+
+		// Check if styling options are incompatible with column-layout
+		const isStylingOption = this.isStylingOption(option);
+		if (isStylingOption && currentCalloutType === "column-layout") {
+			return false;
+		}
+
+		// Colour override exclusions - only one allowed
+		if (this.isColorOverride(option)) {
+			return !this.items.some((item) => this.isColorOverride(item));
+		}
+
+		// Colour modifier exclusions - transparent and intense are mutually exclusive
+		if (this.isColorModifier(option)) {
+			if (option === "transparent" && this.items.includes("intense"))
+				return false;
+			if (option === "intense" && this.items.includes("transparent"))
+				return false;
+		}
+
+		// Title option exclusions
+		if (this.isTitleOption(option)) {
+			return this.isTitleOptionCompatible(option);
+		}
+
+		// Border styling exclusions
+		if (this.isBorderStyle(option)) {
+			return this.isBorderStyleCompatible(option);
+		}
+
+		// Size control exclusions - only one sizing method allowed
+		if (this.isSizeControl(option)) {
+			return this.isSizeControlCompatible(option);
+		}
+
+		// Flex behavior exclusions - they are mutually exclusive
+		if (this.isFlexBehavior(option)) {
+			return !this.items.some((item) => this.isFlexBehavior(item));
+		}
+
+		// Alignment exclusions - only one alignment allowed
+		if (this.isAlignment(option)) {
+			return !this.items.some((item) => this.isAlignment(item));
+		}
+
+		// Flex behavior - all can be combined, no restrictions
+
+		// Layout modes can be combined, no restrictions
+
+		return true;
+	}
+
+	// Helper methods for category checking
+	private isColorOverride(option: string): boolean {
+		return CalloutMetadataSetting.METADATA_CATEGORIES.colorOverrides.includes(
+			option
+		);
+	}
+
+	private isColorModifier(option: string): boolean {
+		return CalloutMetadataSetting.METADATA_CATEGORIES.colorModifiers.includes(
+			option
+		);
+	}
+
+	private isTitleOption(option: string): boolean {
+		return CalloutMetadataSetting.METADATA_CATEGORIES.titleOptions.includes(
+			option
+		);
+	}
+
+	private isBorderStyle(option: string): boolean {
+		return CalloutMetadataSetting.METADATA_CATEGORIES.borderStyling.includes(
+			option
+		);
+	}
+
+	private isBaseSizing(option: string): boolean {
+		return CalloutMetadataSetting.METADATA_CATEGORIES.baseSizing.includes(
+			option
+		);
+	}
+
+	private isClampSizing(option: string): boolean {
+		return CalloutMetadataSetting.METADATA_CATEGORIES.clampSizing.includes(
+			option
+		);
+	}
+
+	private isClampResponsiveSizing(option: string): boolean {
+		return CalloutMetadataSetting.METADATA_CATEGORIES.clampResponsiveSizing.includes(
+			option
+		);
+	}
+
+	private isSizeControl(option: string): boolean {
+		return (
+			this.isBaseSizing(option) ||
+			this.isClampSizing(option) ||
+			this.isClampResponsiveSizing(option)
+		);
+	}
+
+	private isFlexBehavior(option: string): boolean {
+		return CalloutMetadataSetting.METADATA_CATEGORIES.flexBehavior.includes(
+			option
+		);
+	}
+
+	private isLayoutMode(option: string): boolean {
+		return CalloutMetadataSetting.METADATA_CATEGORIES.layoutModes.includes(
+			option
+		);
+	}
+
+	private isAlignment(option: string): boolean {
+		return CalloutMetadataSetting.METADATA_CATEGORIES.alignment.includes(
+			option
+		);
+	}
+
+	private isColumnLayoutOption(option: string): boolean {
+		return (
+			this.isSizeControl(option) ||
+			this.isFlexBehavior(option) ||
+			this.isLayoutMode(option) ||
+			this.isAlignment(option)
+		);
+	}
+
+	private isStylingOption(option: string): boolean {
+		return (
+			this.isColorOverride(option) ||
+			this.isColorModifier(option) ||
+			this.isBorderStyle(option) ||
+			this.isTitleOption(option) ||
+			option === "link-matches-callout"
+		);
+	}
+
+	// Check title option compatibility
+	private isTitleOptionCompatible(option: string): boolean {
+		const hasHideTitleBar = this.items.includes("hide-title-bar");
+
+		switch (option) {
+			case "no-icon":
+				// no-icon is incompatible only with hide-title-bar (can't hide icon if whole bar is hidden)
+				return !hasHideTitleBar;
+			case "hide-title-bar":
+				// hide-title-bar makes no-icon meaningless, so prevent this combination
+				return !this.items.includes("no-icon");
+			case "no-title":
+				// no-title can coexist with no-icon (you can have icon without title text)
+				// but is incompatible with hide-title-bar (can't hide bar that has no title)
+				return !hasHideTitleBar;
+			default:
+				return true;
+		}
+	}
+
+	// Check border style compatibility
+	private isBorderStyleCompatible(option: string): boolean {
+		const [borderWidth, borderSide] = option.split("-");
+
+		if (borderSide === "A") {
+			// All-sides border conflicts with any border of same width
+			return !this.items.some((item) => {
+				if (!this.isBorderStyle(item)) return false;
+				const [itemWidth] = item.split("-");
+				return itemWidth === borderWidth;
+			});
+		} else {
+			// Specific side border conflicts with same side or all-sides of same width
+			return !this.items.some((item) => {
+				if (!this.isBorderStyle(item)) return false;
+				const [itemWidth, itemSide] = item.split("-");
+				return (
+					itemSide === borderSide ||
+					(itemWidth === borderWidth && itemSide === "A")
+				);
+			});
+		}
+	}
+
+	// Check size control compatibility - only one sizing method allowed
+	private isSizeControlCompatible(option: string): boolean {
+		// Check if any other size control option is already selected
+		return !this.items.some((item) => {
+			if (item === option) return false; // Don't check against itself
+			return this.isSizeControl(item);
+		});
+	}
+
+	// Add an item to the selection
+	private addItem(value: string): void {
+		this.items.push(value);
+		this.dropdownComponent.setValue("");
+		this.updateDropdownOptions();
+		this.renderPills();
+		this.notifyChange();
+	}
+
+	// Remove an item from the selection
+	private removeItem(index: number): void {
+		this.items.splice(index, 1);
+		this.updateDropdownOptions();
+		this.renderPills();
+		this.notifyChange();
+	}
+
+	// Render the selected items as pills
+	private renderPills(): void {
+		this.pillsContainer.empty();
+
+		if (this.items.length === 0) {
+			const emptyText =
+				this.pillsContainer.createSpan("list-setting-empty");
+			emptyText.textContent = "No metadata added";
+			return;
+		}
+
+		this.items.forEach((item, index) => {
+			const pill = this.pillsContainer.createDiv("list-setting-pill");
+
+			// Add accessibility information
+			const disabledOptions = this.getDisabledOptionsByItem(item);
+			let pillAriaLabel = "";
+			if (disabledOptions.length > 0) {
+				pillAriaLabel += `This option has disabled: ${disabledOptions.join(
+					", "
+				)}`;
+			}
+			pill.setAttribute("aria-label", pillAriaLabel);
+
+			// Add item text
+			const textSpan = pill.createSpan("list-setting-pill-text");
+			textSpan.textContent = item;
+
+			// Add remove button
+			const removeBtn = pill.createSpan("list-setting-pill-remove");
+			removeBtn.textContent = "×";
+			removeBtn.setAttribute("aria-label", `Remove "${item}"`);
+			removeBtn.addEventListener("click", () => this.removeItem(index));
+		});
+	}
+
+	// Get options disabled by a specific item
+	private getDisabledOptionsByItem(item: string): string[] {
+		const disabled: string[] = [];
+		const allOptions = Object.values(
+			CalloutMetadataSetting.METADATA_CATEGORIES
+		).flat();
+
+		for (const option of allOptions) {
+			if (option === item || this.items.includes(option)) continue;
+
+			const tempItems = this.items.filter((i) => i !== item);
+			const wouldBeAvailableWithout = this.wouldOptionBeAvailable(
+				option,
+				tempItems
+			);
+			const isAvailableWith = this.wouldOptionBeAvailable(
+				option,
+				this.items
+			);
+
+			if (wouldBeAvailableWithout && !isAvailableWith) {
+				disabled.push(option);
+			}
+		}
+
+		return disabled;
+	}
+
+	// Check if option would be available with different item set
+	private wouldOptionBeAvailable(
+		option: string,
+		currentItems: string[]
+	): boolean {
+		if (currentItems.includes(option)) return false;
+
+		// Temporarily replace items to check availability
+		const originalItems = this.items;
+		this.items = currentItems;
+
+		const currentCalloutType = this.getCalloutType();
+
+		// Check callout type dependency for column-layout-specific options
+		const isColumnLayoutRequired = this.isColumnLayoutOption(option);
+		if (isColumnLayoutRequired && currentCalloutType !== "column-layout") {
+			this.items = originalItems;
+			return false;
+		}
+
+		// Check if styling options are incompatible with column-layout
+		const isStylingOption = this.isStylingOption(option);
+		if (isStylingOption && currentCalloutType === "column-layout") {
+			this.items = originalItems;
+			return false;
+		}
+
+		// Use existing validation logic
+		const result = this.isOptionAvailable(option);
+		this.items = originalItems;
+
+		return result;
+	}
+
+	// Notify parent of changes
+	private notifyChange(): void {
+		this.onChange([...this.items]);
+	}
+
+	// Public API methods
+	public getItems(): string[] {
+		return [...this.items];
+	}
+
+	public getMetadataString(): string {
+		return this.items.join(" ");
+	}
+
+	public setItems(items: string[]): void {
+		this.items = [...items];
+		this.updateDropdownOptions();
+		this.renderPills();
+	}
+
+	public setMetadataString(metadataString: string): void {
+		this.setItems(this.parseMetadataString(metadataString));
+	}
+
+	public clear(): void {
+		this.items = [];
+		this.updateDropdownOptions();
+		this.renderPills();
+		this.notifyChange();
+	}
+
+	public refreshOptions(): void {
+		this.updateDropdownOptions();
+	}
+
+	public disable(): void {
+		this.dropdownComponent.setDisabled(true);
+	}
+
+	public enable(): void {
+		this.dropdownComponent.setDisabled(false);
 	}
 }

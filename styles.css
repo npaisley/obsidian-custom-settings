@@ -195,6 +195,21 @@
 	.settings-section-spacer {
 		height: 1.5rem;
 	}
+
+	.data-migration-container {
+		background: var(--background-secondary);
+		border: 1px solid var(--background-modifier-border);
+		border-left: 4px solid var(--text-error);
+		padding: 1rem;
+		border-radius: 4px;
+		margin-bottom: 1rem;
+
+		.setting-item-name {
+			color: var(--text-error);
+		}
+
+
+	}
 }
 
 /* Reset Confirmation Modal Styles */
@@ -237,22 +252,24 @@
 			transition: all 0.1s ease-in-out;
 
 			&.mod-cta {
-				border-color: var(--interactive-accent);
-				color: var(--text-accent);
+				background: var(--interactive-accent);
+				border-color: 1px solid var(--interactive-accent);
+				color: var(--text-on-accent);
 
 				&:hover {
-					background: var(--interactive-accent);
-					color: var(--text-on-accent);
+					background: transparent;
+					color: var(--interactive-accent);
 				}
 			}
 
 			&.mod-warning {
-				border-color: var(--text-error);
-				color: var(--text-error);
+				background: var(--text-error);
+				border-color: 1px solid var(--text-error);
+				color: var(--text-on-accent);
 
 				&:hover {
-					background: var(--text-error);
-					color: var(--text-on-accent);
+					background: transparent;
+					color: var(--text-error);
 				}
 			}
 		}

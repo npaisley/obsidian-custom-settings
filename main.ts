@@ -16,6 +16,10 @@ import {
 	Setting,
 	TextComponent,
 } from "obsidian";
+import {
+	BackupConfirmationModal,
+	MigrationModal,
+} from "./data-migration-to-0.1.0";
 
 // Define an interface for your API
 interface SettingsAPI {
@@ -83,6 +87,12 @@ export default class CustomSettingsPlugin extends Plugin {
 
 	async emitSettingsChanges() {
 		this.settingsEmitter.trigger("ocs-settings-changed", this.settings);
+	}
+
+	async updateUserPluginVersion(version: string) {
+		this.settings.currentVersion =
+			this.settings.currentVersion.concat(version);
+		await this.saveData(this.settings);
 	}
 
 	async onunload() {
@@ -157,6 +167,8 @@ export default class CustomSettingsPlugin extends Plugin {
 }
 
 interface OcsSettings {
+	//user version
+	currentVersion: string[];
 	//static options
 	defaultIcon: string;
 	defaultFold: string;
@@ -241,6 +253,8 @@ interface OcsSettings {
 }
 
 const DEFAULT_SETTINGS: OcsSettings = {
+	//user version
+	currentVersion: [],
 	//static options
 	defaultIcon: "lucide-pencil",
 	defaultFold: "+",
@@ -393,6 +407,12 @@ class SettingsPluginTab extends PluginSettingTab {
 
 	calloutFolds = ["", "+", "-"];
 
+	currentUserPluginVersion() {
+		return this.plugin.settings.currentVersion.length > 0
+			? this.plugin.settings.currentVersion.reverse()[0]
+			: "None";
+	}
+
 	listToRecord(srcList: string[]) {
 		return srcList.reduce((acc, str) => {
 			acc[str] = str;
@@ -404,11 +424,75 @@ class SettingsPluginTab extends PluginSettingTab {
 		return getIconIds();
 	}
 
+	updateRequiredToVersion() {
+		if (this.currentUserPluginVersion() != this.plugin.manifest.version) {
+			return this.plugin.manifest.version;
+		}
+		return null;
+	}
+
 	private formatDateString(date: Date, format: string): string {
 		try {
 			return (window as any).moment(date).format(format);
 		} catch (error) {
 			return "Invalid format";
+		}
+	}
+
+	makeTitleSettings(containerEl: HTMLElement) {
+		const settingTitle = document.createDocumentFragment();
+		settingTitle.append(
+			settingTitle.createEl("h1", {
+				text: `${this.plugin.manifest.name}`,
+			})
+		);
+		const settingDesc = document.createDocumentFragment();
+		settingDesc.append(
+			settingDesc.createEl("h6", {
+				text: `Plugin Version: ${this.plugin.manifest.version}`,
+			}),
+			settingDesc.createEl("p", {
+				text: "Plugin for customizing Project Delta",
+			})
+		);
+
+		// make title
+		new Setting(containerEl).setName(settingTitle).setDesc(settingDesc);
+
+		// add update if necessary
+		const updateVersion = this.updateRequiredToVersion();
+		if (updateVersion != null) {
+			const updateDesc = document.createDocumentFragment();
+			updateDesc.append(
+				updateDesc.createEl("b", {
+					text: `Current User Version: ${this.currentUserPluginVersion()}`,
+				}),
+				updateDesc.createEl("p", {
+					text: `Current user version incompatible with plugin version ${updateVersion}. Project Delta will not function as expected until a data migration has been successfully performed.`,
+				}),
+				updateDesc.createEl("b", {
+					text: `Backup all your notes before proceeding`,
+				})
+			);
+			new Setting(containerEl)
+				.setName("Version Migration Required")
+				.setClass("data-migration-container")
+				.setDesc(updateDesc)
+				.addButton((button) => {
+					button
+						.setWarning()
+						.setButtonText(`Migrate to ${updateVersion}`)
+						.onClick(() => {
+							new BackupConfirmationModal(this.app, () => {
+								new MigrationModal(
+									this.app,
+									this.plugin,
+									this.currentUserPluginVersion(),
+									updateVersion
+								).open();
+							}).open();
+						});
+				});
 		}
 	}
 
@@ -422,16 +506,8 @@ class SettingsPluginTab extends PluginSettingTab {
 				text: `${this.plugin.manifest.name}`,
 			})
 		);
-		const settingDesc = document.createDocumentFragment();
-		settingDesc.append(
-			settingDesc.createEl("h6", {
-				text: `Version ${this.plugin.manifest.version}`,
-			}),
-			settingDesc.createEl("p", {
-				text: "Plugin for customizing Project Delta",
-			})
-		);
-		new Setting(containerEl).setName(settingTitle).setDesc(settingDesc);
+		this.makeTitleSettings(containerEl);
+
 		new Setting(containerEl)
 			.setClass("reference-buttons-container")
 			.setName("Reference")

@@ -250,6 +250,7 @@ interface OcsSettings {
 	yearlyGoalsSummaryDashboardShowCompleted: boolean;
 	yearlyGoalsSummaryDashboardCalloutType: string;
 	yearlyGoalsSummaryDashboardCalloutMetadata: string;
+	yearlyGoalsSummaryDashboardShowUnlinked: boolean;
 }
 
 const DEFAULT_SETTINGS: OcsSettings = {
@@ -336,6 +337,7 @@ const DEFAULT_SETTINGS: OcsSettings = {
 	yearlyGoalsSummaryDashboardShowCompleted: true,
 	yearlyGoalsSummaryDashboardCalloutType: "column-layout",
 	yearlyGoalsSummaryDashboardCalloutMetadata: "clamp-m",
+	yearlyGoalsSummaryDashboardShowUnlinked: true
 };
 
 class SettingsPluginTab extends PluginSettingTab {
@@ -1166,6 +1168,23 @@ class SettingsPluginTab extends PluginSettingTab {
 							)
 							.onChange(async (value) => {
 								this.plugin.settings.yearlyGoalsSummaryDashboardShowCompleted =
+									value;
+								await this.plugin.saveSettings();
+							})
+					);
+				new Setting(containerEl)
+					.setName("Show Projects And Tasks Without A Yearly Goal")
+					.setDesc(
+						"Show projects and tasks that don't have a yearly goal by default in the yearly goals dashboard"
+					)
+					.addToggle((checked) =>
+						checked
+							.setValue(
+								this.plugin.settings
+									.yearlyGoalsSummaryDashboardShowUnlinked
+							)
+							.onChange(async (value) => {
+								this.plugin.settings.yearlyGoalsSummaryDashboardShowUnlinked =
 									value;
 								await this.plugin.saveSettings();
 							})

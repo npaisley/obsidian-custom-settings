@@ -28,12 +28,12 @@ export class DataMigrationManager {
 				(frontmatter) => {
 					let modified = false;
 
-					// 1. Migrate milestones_note to parent
+					// 1. Migrate milestones_note to child note
 					if (frontmatter["milestones_note"]) {
 						fileChanges.migratedMilestonesNote =
 							frontmatter["milestones_note"];
 						if (!dryRun) {
-							frontmatter["parent"] =
+							frontmatter["child note"] =
 								frontmatter["milestones_note"];
 							delete frontmatter["milestones_note"];
 						}
